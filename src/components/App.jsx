@@ -13,6 +13,7 @@ import { Searchbar } from './Searchbar/Searchbar';
 import { toast } from 'react-toastify';
 import { Button } from './Button/Button';
 import { ImageGalleryItemSkeleton } from './ImageGalleryItem/ImageGalleryItemSkeleton';
+import { useEffect, useState } from 'react';
 
 const STATUS = {
   Idle: 'idle',
@@ -20,111 +21,94 @@ const STATUS = {
   Error: 'error',
   Success: 'success',
 };
-export class App extends Component {
-  state = {
-    images: [],
-    page: 1,
-    totalHits: null,
-    status: STATUS.Idle,
-    isLoadMore: false,
-    modalImageUrl: '',
-    query: '',
-    totalPage: null,
-  };
 
-  //   componentDidMount() {
-  //     this.fetchImages();
-  //   }
+export function App() {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState(STATUS.Idle);
 
-  componentDidUpdate(prevProps, prevState) {
-    if (
-      prevState.page !== this.state.page ||
-      prevState.query !== this.state.query
-    ) {
-      this.fetchImages();
-    }
-  }
+  const [modalImageUrl, setModalImageUrl] = useState('');
+  const [query, setQuery] = useState('');
 
-  fetchImages = () => {
-    console.log('this.statequery', this.state.query);
-    //  this.setState({ status: STATUS.Loading });
-    service(this.state.page, this.state.query)
-      .then(({ data }) => {
-        this.setState({ status: STATUS.Success });
-        this.setState(prevState => ({
-          images: [...prevState.images, ...data.hits],
-        }));
-      })
-      .catch(() => {
-        this.setState({ status: STATUS.Error });
-        toast.error('Something is wrong!');
-      })
-      .finally(() => this.setState({ loading: false }));
+  const handleChangeModalUrl = Url => {
+    setModalImageUrl(Url);
   };
-  handleChangeModalUrl = Url => {
-    this.setState({ modalImageUrl: Url });
+  const handleLoadMore = () => {
+    setPage(prevState => prevState + 1);
   };
-  handleLoadMore = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  const onCloseModal = () => {
+    setModalImageUrl('');
   };
-  onCloseModal = () => {
-    this.setState({ modalImageUrl: '' });
-  };
-  handleSubmit = search => {
-    if (search === this.state.query) {
+  const handleSubmit = search => {
+    if (search === query) {
       return;
     }
+    setImages([]);
+    setQuery(search);
+  };
+  const fetchImages = () => {
+    console.log('query', query);
 
-    this.setState({ images: [] });
-    this.setState({ query: search });
+    service(page, query)
+      .then(({ data }) => {
+        setStatus(STATUS.Success);
+        setImages(prevState => [...prevState, ...data.hits]);
+      })
+      .catch(() => {
+        setStatus(STATUS.Error);
+        toast.error('Something is wrong!');
+      });
   };
 
-  render() {
-    const { images, status } = this.state;
-    if (status === STATUS.Error) {
-      return <></>;
+  useEffect(() => {
+    if (page !== 1 || query !== '') {
+      fetchImages();
     }
-    if (status === STATUS.Idle || status === STATUS.Loading) {
-      return (
-        <>
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ul className="gallery">
-            {[...Array(4)].map((_, index) => (
-              <ImageGalleryItemSkeleton key={index} />
-            ))}
-          </ul>
-        </>
-      );
-    }
-    if (!images?.length) {
-      return <p>No data</p>;
-    }
+  }, [page, query]);
 
+  if (status === STATUS.Error) {
+    return <>Error</>;
+  }
+  if (status === STATUS.Idle || status === STATUS.Loading) {
     return (
       <>
-        <Searchbar onSubmit={this.handleSubmit} />
-        <Skeleton />
-        <ImageGallery
-          query={this.state.query}
-          images={images}
-          handleChangeModalUrl={this.handleChangeModalUrl}
-        />
-
-        <Button
-          className="btn"
-          type="button"
-          textContent="Load more"
-          handlerClick={this.handleLoadMore}
-        >
-          Load more
-        </Button>
-        {this.state.modalImageUrl && (
-          <Modal onClose={this.onCloseModal}>
-            <img src={this.state.modalImageUrl} className="imageStyle" alt="" />
-          </Modal>
-        )}
-        <ToastContainer />
+        <Searchbar onSubmit={handleSubmit} />
+        <ul className="gallery">
+          {[...Array(4)].map((_, index) => (
+            <ImageGalleryItemSkeleton key={index} />
+          ))}
+        </ul>
       </>
     );
   }
+  if (!images?.length) {
+    return <p>No data</p>;
+  }
+
+  return (
+    <>
+      <Searchbar onSubmit={handleSubmit} />
+      <Skeleton />
+      <ImageGallery
+        query={setQuery}
+        images={images}
+        handleChangeModalUrl={handleChangeModalUrl}
+      />
+
+      <Button
+        className="btn"
+        type="button"
+        textContent="Load more"
+        handlerClick={handleLoadMore}
+      >
+        Load more
+      </Button>
+      {modalImageUrl && (
+        <Modal onClose={onCloseModal}>
+          <img src={modalImageUrl} className="imageStyle" alt="" />
+        </Modal>
+      )}
+      <ToastContainer />
+    </>
+  );
 }
