@@ -44,22 +44,21 @@ export function App() {
     setImages([]);
     setQuery(search);
   };
-  const fetchImages = () => {
-    console.log('query', query);
-
-    service(page, query)
-      .then(({ data }) => {
-        setStatus(STATUS.Success);
-        setImages(prevState => [...prevState, ...data.hits]);
-      })
-      .catch(() => {
-        setStatus(STATUS.Error);
-        toast.error('Something is wrong!');
-      });
-  };
 
   useEffect(() => {
     if (page !== 1 || query !== '') {
+      console.log('query', query);
+      const fetchImages = () => {
+        service(page, query)
+          .then(({ data }) => {
+            setStatus(STATUS.Success);
+            setImages(prevState => [...prevState, ...data.hits]);
+          })
+          .catch(() => {
+            setStatus(STATUS.Error);
+            toast.error('Something is wrong!');
+          });
+      };
       fetchImages();
     }
   }, [page, query]);
