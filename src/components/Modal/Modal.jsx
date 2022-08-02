@@ -11,7 +11,7 @@ export function Modal({ children, onClose }) {
     };
     window.addEventListener('keydown', handleCloseModal);
     return () => window.removeEventListener('keydown', handleCloseModal);
-  }, []);
+  }, [onClose]);
 
   return (
     <>
